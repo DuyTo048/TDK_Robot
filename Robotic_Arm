@@ -1,0 +1,129 @@
+#include <Arduino.h>
+#include <usbh_hidps3.h>
+#include <Stepper.h>
+
+// Define each motor pin connections
+#define MOTOR1_DIR 3
+#define MOTOR1_STEP 4
+#define MOTOR1_EN 5
+
+#define MOTOR2_DIR 6
+#define MOTOR2_STEP 7
+#define MOTOR2_EN 8
+
+#define MOTOR3_DIR 9
+#define MOTOR3_STEP 10
+#define MOTOR3_EN 11
+
+// Define the steps per revolution for Stepper Motors
+#define STEPS_PER_REV 200
+
+// Create Stepper objects for the two motors
+Stepper motor1(STEPS_PER_REV, MOTOR1_STEP, MOTOR1_DIR);
+Stepper motor2(STEPS_PER_REV, MOTOR2_STEP, MOTOR2_DIR);
+Stepper motor3(STEPS_PER_REV, MOTOR3_STEP, MOTOR3_DIR);
+
+// Create USB and PS3 Controller objects
+USB Usb;
+USBH_HIDPS3 PS3(&Usb);
+
+// Motor position variables
+int motor1Pos = 0;
+int motor2Pos = 0;
+int motor3Pos = 0;
+
+void setup() 
+{
+  pinMode(MOTOR1_STEP, OUTPUT);
+  pinMode(MOTOR1_DIR, OUTPUT);
+  pinMode(MOTOR1_EN, OUTPUT);
+
+  pinMode(MOTOR2_STEP, OUTPUT);
+  pinMode(MOTOR2_DIR, OUTPUT);
+  pinMode(MOTOR2_EN, OUTPUT);
+
+  pinMode(MOTOR3_STEP, OUTPUT);
+  pinMode(MOTOR3_DIR, OUTPUT);
+  pinMode(MOTOR3_EN, OUTPUT);
+
+  // Set the speed for the motors (in steps per second)
+  motor1.setSpeed(100);
+  motor2.setSpeed(100);
+  motor3.setSpeed(100);
+
+  // Enable motor drivers
+  digitalWrite(MOTOR1_EN, HIGH);
+  digitalWrite(MOTOR2_EN, HIGH);
+  digitalWrite(MOTOR3_EN, HIGH);
+
+  // Initialize USB
+  if (Usb.Init() == -1)
+  {
+    while(1);
+  }
+  delay(200);
+}
+
+void loop() 
+{
+  Usb.Task();
+
+  if (PS3.PS3Connected)
+  {
+    int leftX = PS3.getAnalogHat(LeftHatX);
+    int leftY = PS3.getAnalogHat(LeftHatY);
+    int rightX = PS3.getAnalogHat(RightHatX);
+    int rightY = PS3.getAnalogHat(RightHatY);
+
+    // Map joystick values to motor positions
+    int motor1Steps = map(leftX, 0, 255, 0, 1000);
+    int motor2Steps = map(leftY, 0, 255, 0, 500);
+    int morot3Steps = map(rightX, 0, 255, 0, 800);
+
+    // Increase or decrease motor position based on button presses
+    if (PS3.getButtonClick(square))
+    {
+      motor1Pos++;
+    }
+    else if (PS3.getButtonClick(CIRCLE))
+    {
+      motor1Pos--;
+    }
+
+    if (PS3.getButtonClick(TRIANGLE))
+    {
+      motor2Pos++;
+    }
+    else if (PS3.getButtonClick(CROSS))
+    {
+      motor2Pos--;
+    }
+
+    if (PS3.getButtonClick(R2))
+    {
+      motor3Pos++;
+    }
+    else if (PS3.getButtonClick(R1))
+    {
+      motor3Pos--;
+    }
+
+    // Move motor 1
+    if (motor1Steps > 0)
+    {
+      motor1.step(motor1Steps);
+    }
+
+    // Move motor 2
+    if (motor2Steps > 0)
+    {
+      motor2.step(motor2Steps);
+    }
+
+    // Move motor 3
+    if (motor3Steps > 0)
+    {
+      motor3.step(motor3Steps);
+    }
+  }
+}
